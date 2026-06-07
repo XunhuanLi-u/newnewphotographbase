@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>模仿相册</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PRIVATE PORTRAIT PRACTICE</p>
+        <h1>模仿相册</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost-button" id="clearAlbumButton" type="button" title="清空本地相册">
+          清空相册
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="workspace">
+        <aside class="reference-panel" aria-label="参考照片">
+          <div class="section-heading">
+            <p class="eyebrow">Step 1</p>
+            <h2>选择一个练习模板</h2>
+          </div>
+
+          <form class="template-form" id="templateForm">
+            <label class="compact-label" for="templateTitle">模板名称</label>
+            <input id="templateTitle" type="text" maxlength="28" placeholder="例如：电影感窗边侧脸" />
+
+            <label class="compact-label" for="templateNotes">模板备注</label>
+            <textarea
+              id="templateNotes"
+              rows="3"
+              maxlength="240"
+              placeholder="想模仿的重点：光线、构图、肤色、情绪..."
+            ></textarea>
+
+            <label class="template-upload" for="templateInput">
+              <input id="templateInput" type="file" accept="image/*" />
+              <span id="templateUploadText">上传模板照片</span>
+            </label>
+
+            <details class="api-panel">
+              <summary>视觉模型 API</summary>
+              <label class="compact-label" for="apiEndpoint">接口地址</label>
+              <input id="apiEndpoint" type="url" placeholder="https://api.openai.com/v1/chat/completions" />
+
+              <label class="compact-label" for="apiModel">模型</label>
+              <input id="apiModel" type="text" placeholder="gpt-4o-mini" />
+
+              <label class="compact-label" for="apiKey">API Key</label>
+              <input id="apiKey" type="password" autocomplete="off" placeholder="sk-..." />
+            </details>
+
+            <button class="primary-button full-button" id="analyzeTemplateButton" type="submit">
+              分析并保存模板
+            </button>
+            <p class="form-status" id="templateStatus"></p>
+          </form>
+
+          <div class="library-manager">
+            <div class="library-heading">
+              <label class="compact-label" for="librarySelect">模板库</label>
+              <span id="libraryCountText"></span>
+            </div>
+            <div class="library-row">
+              <select id="librarySelect"></select>
+              <div class="library-actions">
+                <button class="secondary-button mini-button" id="createLibraryButton" type="button">新建</button>
+                <button class="secondary-button mini-button" id="renameLibraryButton" type="button">重命名</button>
+                <button class="secondary-button mini-button" id="exportLibrariesButton" type="button">导出数据</button>
+                <button class="secondary-button mini-button" id="exportDefaultBundleButton" type="button">导出上线包</button>
+                <button class="danger-button mini-button" id="deleteLibraryButton" type="button">删除</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="reference-grid" id="referenceGrid"></div>
+        </aside>
+
+        <section class="studio-panel" aria-label="练习工作台">
+          <div class="studio-header">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h2 id="activeTitle">伦勃朗光肖像</h2>
+            </div>
+            <div class="preset-chip" id="activeChip">Rembrandt</div>
+          </div>
+
+          <figure class="active-template-preview">
+            <img id="activeTemplateImage" alt="当前模板照片" />
+            <figcaption>当前模板照片</figcaption>
+          </figure>
+
+          <div class="template-analysis" id="templateAnalysisBlock">
+            <h3>模板分析</h3>
+            <p class="body-copy" id="templateAnalysisText"></p>
+          </div>
+
+          <div class="template-exif" id="templateExifBlock">
+            <h3>原片 EXIF 参数</h3>
+            <dl class="settings-list exif-list" id="templateExifSettings"></dl>
+            <p class="body-copy" id="templateExifStatus"></p>
+          </div>
+
+          <div class="advice-layout">
+            <article class="advice-block">
+              <h3>拍摄建议</h3>
+              <dl class="settings-list" id="shootingSettings"></dl>
+              <p class="body-copy" id="shootingAdvice"></p>
+            </article>
+            <article class="advice-block">
+              <h3>后期方向</h3>
+              <dl class="settings-list" id="processingSettings"></dl>
+              <p class="body-copy" id="processingAdvice"></p>
+            </article>
+          </div>
+
+          <div class="upload-zone" id="uploadZone">
+            <input id="photoInput" type="file" accept="image/*" />
+            <div>
+              <strong>上传你的模仿练习照</strong>
+              <span>点击选择，或把照片拖到这里，系统会按模板构图与质感自动校正</span>
+            </div>
+          </div>
+
+          <div class="comparison">
+            <figure class="image-stage">
+              <figcaption>原图</figcaption>
+              <div class="stage-frame">
+                <img id="originalPreview" alt="上传的原图预览" />
+                <span class="empty-state" id="originalEmpty">等待上传</span>
+              </div>
+            </figure>
+            <figure class="image-stage">
+              <figcaption>构图 + 风格校正</figcaption>
+              <div class="stage-frame">
+                <canvas id="processedCanvas"></canvas>
+                <span class="empty-state" id="processedEmpty">选择照片后生成</span>
+              </div>
+            </figure>
+          </div>
+
+          <div class="analysis-strip" id="analysisStrip">
+            <div>
+              <span>曝光判断</span>
+              <strong id="exposureReadout">-</strong>
+            </div>
+            <div>
+              <span>白平衡倾向</span>
+              <strong id="wbReadout">-</strong>
+            </div>
+            <div>
+              <span>反差状态</span>
+              <strong id="contrastReadout">-</strong>
+            </div>
+            <div>
+              <span>构图校正</span>
+              <strong id="compositionReadout">-</strong>
+            </div>
+          </div>
+
+          <div class="tool-row">
+            <button class="primary-button" id="applyButton" type="button">重新套用算法</button>
+            <button class="secondary-button" id="saveButton" type="button" disabled>保存到练习相册</button>
+            <a class="secondary-link disabled" id="downloadLink" download="portrait-practice.jpg">下载成片</a>
+          </div>
+        </section>
+      </section>
+
+      <section class="album-section" aria-label="私人练习相册">
+        <div class="section-heading">
+          <p class="eyebrow">Step 3</p>
+          <h2>私人练习相册</h2>
+        </div>
+        <div class="album-grid" id="albumGrid"></div>
+      </section>
+    </main>
+
+    <script src="assets/template-libraries/manifest.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
